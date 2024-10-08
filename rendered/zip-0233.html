@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ZIP 233: Establish the Zcash Sustainability Fund on the Protocol Level</title>
+    <title>ZIP 233: Network Sustainability Mechanism: Burning</title>
     <meta charset="utf-8" />
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <pre><code>ZIP: 233
-Title: Establish the Zcash Sustainability Fund on the Protocol Level
-Owners: Jason McGee &lt;jason@shieldedlabs.com&gt;
-        Mark Henderson &lt;mark@equilibrium.co&gt;
+Title: Network Sustainability Mechanism: Burning
+Owners: Jason McGee &lt;jason@shieldedlabs.net&gt;
+        Zooko Wilcox &lt;zooko@shieldedlabs.net&gt;
         Tomek Piotrowski &lt;tomek@eiger.co&gt;
         Mariusz Pilarek &lt;mariusz@eiger.co&gt;
         Paul Dann &lt;paul@eiger.co&gt;
@@ -38,86 +38,68 @@ matter.</p>
 current issuance mechanism, but is the value used in existing critical
 consensus checks.</p>
 <h1 id="abstract">Abstract</h1>
-<p>We propose defining the Zcash Sustainability Fund (ZSF) as:
-<code>MAX_MONEY - ChainValue</code>, where <code>ChainValue</code>
-includes all ZEC available on the network, across all value pools.</p>
-<p>This definition is intended to support future mechanisms to
-strengthen the long-term sustainability of the network. We anticipate
-that this will lay important groundwork for future economic upgrades,
-such as a transition to Proof of Stake or Zcash Shielded Assets, and
-other potential protocol fees and user applications.</p>
-<p>In addition, we propose a new transaction field, which would require
-the introduction of a network upgrade. This field is required to support
-a mechanism for depositing existing ZEC into the ZSF. From the
-perspective of network users, this operation would be similar in concept
-to the idea of “burning” ZEC, except that removing ZEC from circulation
-increases the value of the ZSF by definition. Methods to make use of
-these deposited funds will be proposed in future ZIPs.</p>
-<p>While wallet developers would be encouraged to add support for ZSF
-deposits to their UIs, no changes or new behavior are required for
-developers or ZEC holders.</p>
+<p>We propose the introduction of a mechanism to voluntarily burn funds,
+removing those funds entirely from circulation on the network. This
+mechanism, in combination with ZIPs 234 and 235, comprises a long-term
+strategy for the sustainability of the network. We will refer to the
+combined effects of these three ZIPs as the “Network Sustainability
+Mechanism”.</p>
 <h1 id="motivation">Motivation</h1>
+<p>This mechanism seeks to address concerns about the sustainability of
+the network design shared by Bitcoin-like systems:</p>
 <ol type="1">
-<li><strong>Long Term Consensus Sustainability:</strong> This mechanism
-seeks to address concerns about the sustainability of the network design
-shared by Bitcoin-like systems through the establishment of deposits
-into the Sustainability Fund to augment block rewards, ensuring
-long-term sustainability as the issuance rate of Zcash drops and newly
-issued ZEC decreases over time.</li>
-<li><strong>Benefits to ZEC Holders:</strong> Deposits to the ZSF slow
-down the payout of ZEC, temporarily reducing its available supply,
-benefiting current holders of unencumbered active ZEC in proportion to
-their holdings without requiring them to opt into any scheme,
-introducing extra risk, active oversight, or accounting complexity.</li>
-<li><strong>Recovery of “Soft-Burned” Funds:</strong> In some instances,
-such as miners not claiming all available rewards, some ZEC goes
-unaccounted for, though not formally burned. This proposal would recover
-this unclaimed value, as it is already part of the ZSF if the proposed
-definition of the ZSF is adopted.</li>
+<li><strong>Long Term Consensus Sustainability:</strong> By enabling the
+burning of funds, the network gains the ability to create “headroom”
+between the chain value and <code>MAX_MONEY</code>. This lays necessary
+groundwork for extending the miner reward system, which currently has a
+clear final end date.</li>
+<li><strong>Benefits to ZEC Holders:</strong> Burning funds reduces the
+supply of ZEC, benefiting network users in proportion to their holdings
+without requiring them to opt into any scheme, introducing extra risk,
+active oversight, or accounting complexity.</li>
 </ol>
 <h1 id="specification">Specification</h1>
 <p>The modifications required are:</p>
 <ol type="1">
-<li>A mechanism to calculate the current balance of the ZSF.</li>
-<li>The addition of a transaction field representing an amount to
-deposit into the ZSF.</li>
-<li>The consideration of ZSF deposit as an output for a given
-transaction, e.g. inclusion in fee calculation.</li>
+<li>The addition of a transaction field representing an amount to burn
+for a given transaction.</li>
+<li>The inclusion of the burn amount in the calculated total output
+value for a given transaction.</li>
+<li>Consensus rules to ensure the burned amount is no longer available
+for circulation on the network.</li>
 </ol>
-<h2 id="current-zsf-balance">Current ZSF Balance</h2>
-<p>This calculation simply involves summing all active value pools, and
-subtracting this total from `MAX_MONEY’.</p>
-<h2 id="deposits-into-the-zsf">Deposits into the ZSF</h2>
+<h2 id="burning">Burning</h2>
 <p>We add a new field to the common transaction fields [3]:</p>
-<pre><code>zsfDeposit : uint64 [zatoshi]</code></pre>
+<pre><code>burnAmount : uint64 [zatoshi]</code></pre>
 <p>This field specifies how much of the input value for the transaction
-should be deposited in the ZSF.</p>
+should be burned.</p>
 <p><strong>Note:</strong> Older transaction versions can continue to be
-supported after a network upgrade, but ZSF deposits are not possible for
-these transactions. For example, NU5 supports both v4 and v5 transaction
+supported after a network upgrade, but burning is not possible for these
+transactions. For example, NU5 supports both v4 and v5 transaction
 formats, for both coinbase and non-coinbase transactions.</p>
 <h2 id="consensus-rule-changes">Consensus Rule Changes</h2>
-<p>ZSF deposits must now be included when calculating the total output
-value of a transaction. They should be treated similarly to a
-transparent output.</p>
+<p>The burned value must now be considered when calculating the total
+output value of a transaction. It should be treated similarly to a
+transparent output, except that there is no way for this value to be
+used as an input in a future transaction.</p>
 <h2 id="transaction-format-requirements">Transaction Format
 Requirements</h2>
 <ul>
 <li>ZIP 230 [3] must be updated to include the new
-<code>zsfDeposit</code> field.</li>
+<code>burnAmount</code> field.</li>
 <li>ZIP 244 [4] must be updated as well to include the new
-<code>zsfDeposit</code> field.</li>
+<code>burnAmount</code> field.</li>
 </ul>
 <h1 id="rationale">Rationale</h1>
 <p>All technical decisions in this ZIP are balanced between the
-necessary robustness of the ZSF mechanics, and simplicity of
+necessary robustness of the NSM mechanics, and simplicity of
 implementation.</p>
-<h2 id="new-transaction-field-for-zsf-deposit">New transaction field for
-ZSF deposit</h2>
-<p>An explicit value distinguishes the ZEC destined to Sustainability
-Fund deposits from the implicit transaction fee. Explicitness also
-ensures any arithmetic flaws in any implementations are more likely to
-be observed and caught immediately.</p>
+<h2 id="new-transaction-field-for-burn-amount">New transaction field for
+burn amount</h2>
+<p>An explicit value distinguishes the burned ZEC from the implicit
+transaction fee. Explicitness also ensures any arithmetic flaws in any
+implementations are more likely to be observed and caught
+immediately.</p>
 <h1 id="deployment">Deployment</h1>
 <p>This ZIP is proposed to activate with Network Upgrade 7.</p>
 <h1 id="references">References</h1>
